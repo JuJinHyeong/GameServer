@@ -1,20 +1,17 @@
 #include <iostream>
-#include "IOCompletionPort.h"
+#include "GameServer.h"
 using namespace std;
 
-constexpr UINT16 SERVER_PORT = 9000;
-constexpr UINT16 MAX_CLIENT = 100;
-
 int main() {
-	IOCompletionPort ioCompletionPort;
-	ioCompletionPort.InitSocket();
-	ioCompletionPort.BindAndListen(SERVER_PORT);
-	ioCompletionPort.StartServer(MAX_CLIENT);
+	GameServer gameServer;
+	gameServer.InitSocket();
+	gameServer.BindAndListen();
+	gameServer.StartServer();
 
 	std::cout << "Press any key to exit\n";
 	std::cin.get();
 
-	ioCompletionPort.DestroyThread();
+	gameServer.DestroyThread();
 
 	return 0;
 }

@@ -1,15 +1,15 @@
-#include "IOCompletionPort.h"
+#include "GameServer.h"
 #include <iostream>
 
-IOCompletionPort::IOCompletionPort() {
+GameServer::GameServer() {
 
 }
 
-IOCompletionPort::~IOCompletionPort() {
+GameServer::~GameServer() {
 	WSACleanup();
 }
 
-bool IOCompletionPort::InitSocket() {
+bool GameServer::InitSocket() {
 	// startup winsocket
 	WSADATA wsaData;
 	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -31,14 +31,10 @@ bool IOCompletionPort::InitSocket() {
 	return true;
 }
 
-bool IOCompletionPort::BindAndListen(UINT16 bindPort) {
+bool GameServer::BindAndListen() {
 	SOCKADDR_IN serverAddr;
-	// must be AF_INET
 	serverAddr.sin_family = AF_INET;
-	// set server port
-	// htons: host to network short -> set to big endian
-	serverAddr.sin_port = htons(bindPort);
-	// set connectable ip address
+	serverAddr.sin_port = htons(SERVER_PORT);
 	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	int result = bind(mListenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
@@ -49,7 +45,7 @@ bool IOCompletionPort::BindAndListen(UINT16 bindPort) {
 
 	// bind	iocompletionport, set listen queue to 5
 	result = listen(mListenSocket, 5);
-	if(result == SOCKET_ERROR) {
+	if (result == SOCKET_ERROR) {
 		std::cerr << "listen failed with error: " << WSAGetLastError() << std::endl;
 		return false;
 	}
@@ -58,9 +54,8 @@ bool IOCompletionPort::BindAndListen(UINT16 bindPort) {
 	return true;
 }
 
-bool IOCompletionPort::StartServer(const UINT32 maxClientCount) {
-	CreateClient(maxClientCount);
-
+bool GameServer::StartServer() {
+	CreateClient();
 	mIOCPHandle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, MAX_WORKER_THREAD_COUNT);
 	if (mIOCPHandle == NULL) {
 		std::cerr << "CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
@@ -77,11 +72,16 @@ bool IOCompletionPort::StartServer(const UINT32 maxClientCount) {
 		return result;
 	}
 
+	result = CreateDispatchThread();
+	if (!result) {
+		return result;
+	}
+
 	std::cout << "Start Server Success\n";
 	return true;
 }
 
-void IOCompletionPort::DestroyThread() {
+void GameServer::DestroyThread() {
 	mbIsAcceptRun = false;
 	closesocket(mListenSocket);
 	if (mAcceptThread.joinable()) {
@@ -95,16 +95,22 @@ void IOCompletionPort::DestroyThread() {
 			th.join();
 		}
 	}
+
+	mbIsDispatchRun = false;
+	for (std::thread& th : mDispatchThreadArr) {
+		if (th.joinable()) {
+			th.join();
+		}
+	}
 }
 
-void IOCompletionPort::CreateClient(const UINT32 maxClientCount) {
-	for (UINT32 i = 0; i < maxClientCount; ++i) {
+void GameServer::CreateClient() {
+	for (UINT32 i = 0; i < MAX_CLIENT; ++i) {
 		mClientInfoArr.emplace_back();
 	}
 }
 
-bool IOCompletionPort::CreateWorkerThread() {
-	unsigned int threadID = 0;
+bool GameServer::CreateWorkerThread() {
 	for (UINT32 i = 0; i < MAX_WORKER_THREAD_COUNT; ++i) {
 		mIOWorkerThreadArr.emplace_back([this]() { WorkerThread(); });
 	}
@@ -112,13 +118,22 @@ bool IOCompletionPort::CreateWorkerThread() {
 	return true;
 }
 
-bool IOCompletionPort::CreateAcceptThread() {
+bool GameServer::CreateAcceptThread() {
 	mAcceptThread = std::thread([this]() { AcceptThread(); });
 	std::cout << "Create Accept Thread Success\n";
 	return true;
 }
 
-ClientInfo* IOCompletionPort::GetEmptyClientInfo() {
+bool GameServer::CreateDispatchThread()
+{
+	for (UINT32 i = 0; i < MAX_DISPATCH_THREAD_COUNT; ++i) {
+		mDispatchThreadArr.emplace_back([this]() { DispatchThread(); });
+	}
+	std::cout << "Create Dispatch Thread Success\n";
+	return true;
+}
+
+ClientInfo* GameServer::GetEmptyClientInfo() {
 	for (ClientInfo& clientInfo : mClientInfoArr) {
 		if (clientInfo.ClientSocket == INVALID_SOCKET) {
 			return &clientInfo;
@@ -127,7 +142,7 @@ ClientInfo* IOCompletionPort::GetEmptyClientInfo() {
 	return nullptr;
 }
 
-bool IOCompletionPort::BindIOCompletionPort(ClientInfo* pClientInfo) {
+bool GameServer::BindIOCompletionPort(ClientInfo* pClientInfo) {
 	auto hIOCP = CreateIoCompletionPort(
 		(HANDLE)pClientInfo->ClientSocket,
 		mIOCPHandle,
@@ -143,7 +158,7 @@ bool IOCompletionPort::BindIOCompletionPort(ClientInfo* pClientInfo) {
 	return true;
 }
 
-bool IOCompletionPort::BindRecv(ClientInfo* pClientInfo) {
+bool GameServer::BindRecv(ClientInfo* pClientInfo) {
 	DWORD flags = 0;
 	DWORD recvBytes = 0;
 
@@ -157,18 +172,18 @@ bool IOCompletionPort::BindRecv(ClientInfo* pClientInfo) {
 		1,
 		&recvBytes,
 		&flags,
-		(LPWSAOVERLAPPED)&(pClientInfo->RecvOverlapped),
+		(LPWSAOVERLAPPED) & (pClientInfo->RecvOverlapped),
 		NULL
 	);
 
-	if(result == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
+	if (result == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
 		std::cerr << "WSARecv failed with error: " << WSAGetLastError() << std::endl;
 		return false;
 	}
 	return true;
 }
 
-bool IOCompletionPort::SendMsg(ClientInfo* pClientInfo, const char* message, const int messageLength) {
+bool GameServer::SendMsg(ClientInfo* pClientInfo, const char* message, const int messageLength) {
 	DWORD recvNumBytes = 0;
 	CopyMemory(pClientInfo->SendOverlapped.Buffer, message, messageLength + 1);
 
@@ -182,7 +197,7 @@ bool IOCompletionPort::SendMsg(ClientInfo* pClientInfo, const char* message, con
 		1,
 		&recvNumBytes,
 		0,
-		(LPWSAOVERLAPPED)&(pClientInfo->SendOverlapped),
+		(LPWSAOVERLAPPED) & (pClientInfo->SendOverlapped),
 		NULL
 	);
 
@@ -193,7 +208,7 @@ bool IOCompletionPort::SendMsg(ClientInfo* pClientInfo, const char* message, con
 	return true;
 }
 
-void IOCompletionPort::WorkerThread() {
+void GameServer::WorkerThread() {
 	ClientInfo* pClientInfo = nullptr;
 	DWORD IOSize = 0;
 
@@ -208,28 +223,35 @@ void IOCompletionPort::WorkerThread() {
 			INFINITE
 		);
 
-		if (IOSize == 0) {
-			mbIsWorkerRun = false;
-			break;
-		}
-		if (lpOverlapped == NULL) {
+		// if client is closed connection
+		if (result == TRUE && IOSize == 0) {
+			std::cout << "Disconnected: " << (int)pClientInfo->ClientSocket << std::endl;
+			CloseSocket(pClientInfo);
 			continue;
 		}
 
-		if (result == FALSE) {
-			std::cout << "GetQueuedCompletionStatus failed with error: " << GetLastError() << std::endl;
+		// if client sends nothing
+		if (IOSize == NULL) {
+			continue;
+		}
+
+		// if client is terminated
+		if (result == FALSE || (IOSize == 0 && lpOverlapped == NULL)) {
+			std::cout << "Disconnected: " << (int)pClientInfo->ClientSocket << std::endl;
 			CloseSocket(pClientInfo);
 			continue;
 		}
 
 		OverlappedEx* pOverlappedEx = (OverlappedEx*)lpOverlapped;
 		if (pOverlappedEx->OperationType == eIOOperation::RECV) {
+			// convert packet to message
 			pOverlappedEx->Buffer[IOSize] = '\0';
-			std::cout << "Recv Data: " << pOverlappedEx->Buffer << std::endl;
-			SendMsg(pClientInfo, pOverlappedEx->Buffer, IOSize);
+			Message message = { pOverlappedEx->Buffer, pClientInfo };
+			mMessageQueue.Push(message);
+
 			BindRecv(pClientInfo);
 		}
-		else if(pOverlappedEx->OperationType == eIOOperation::SEND) {
+		else if (pOverlappedEx->OperationType == eIOOperation::SEND) {
 			std::cout << "Send Data: " << pOverlappedEx->Buffer << std::endl;
 		}
 		else {
@@ -238,7 +260,7 @@ void IOCompletionPort::WorkerThread() {
 	}
 }
 
-void IOCompletionPort::AcceptThread() {
+void GameServer::AcceptThread() {
 	SOCKADDR_IN clientAddr;
 	int clientAddrSize = sizeof(clientAddr);
 	while (mbIsAcceptRun) {
@@ -249,7 +271,7 @@ void IOCompletionPort::AcceptThread() {
 		}
 
 		pClientInfo->ClientSocket = accept(mListenSocket, (SOCKADDR*)&clientAddr, &clientAddrSize);
-		if(pClientInfo->ClientSocket == INVALID_SOCKET) {
+		if (pClientInfo->ClientSocket == INVALID_SOCKET) {
 			std::cerr << "accept failed with error: " << WSAGetLastError() << std::endl;
 			return;
 		}
@@ -272,7 +294,18 @@ void IOCompletionPort::AcceptThread() {
 	}
 }
 
-void IOCompletionPort::CloseSocket(ClientInfo* pClientInfo, bool bIsForce) {
+void GameServer::DispatchThread()
+{
+	while (mbIsDispatchRun) {
+		Message message = mMessageQueue.Pop();
+
+		std::cout << "Recv Message: " << message.Message << std::endl;
+
+		SendMsg(message.pClientInfo, message.Message.c_str(), (int)message.Message.size());
+	}
+}
+
+void GameServer::CloseSocket(ClientInfo* pClientInfo, bool bIsForce) {
 	LINGER linger = { 0, 0 };
 
 	if (bIsForce) {
@@ -293,4 +326,3 @@ void IOCompletionPort::CloseSocket(ClientInfo* pClientInfo, bool bIsForce) {
 
 	pClientInfo->ClientSocket = INVALID_SOCKET;
 }
-

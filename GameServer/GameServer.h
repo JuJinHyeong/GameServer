@@ -6,8 +6,13 @@
 #include <vector>
 #include <thread>
 
+#include "ThreadSafeQueue.h"
+
 constexpr UINT32 MAX_SOCKET_BUFFER_SIZE = 1024;
 constexpr UINT32 MAX_WORKER_THREAD_COUNT = 4;
+constexpr UINT32 MAX_DISPATCH_THREAD_COUNT = 4;
+constexpr UINT16 SERVER_PORT = 9000;
+constexpr UINT32 MAX_CLIENT = 100;
 
 enum eIOOperation {
 	RECV,
@@ -28,35 +33,49 @@ struct ClientInfo {
 	OverlappedEx SendOverlapped = { 0 };
 };
 
-class IOCompletionPort {
+struct Message {
+	std::string Message;
+	ClientInfo* pClientInfo;
+};
+
+
+class GameServer {
 public:
-	IOCompletionPort();
-	~IOCompletionPort();
+	GameServer();
+	~GameServer();
 	bool InitSocket();
-	bool BindAndListen(UINT16 bindPort);
-	bool StartServer(const UINT32 maxClientCount);
+	bool BindAndListen();
+	bool StartServer();
 	void DestroyThread();
 
 private:
-	void CreateClient(const UINT32 maxClientCount);
+	void CreateClient();
 	bool CreateWorkerThread();
 	bool CreateAcceptThread();
+	bool CreateDispatchThread();
+
 	ClientInfo* GetEmptyClientInfo();
 	bool BindIOCompletionPort(ClientInfo* pClientInfo);
 	bool BindRecv(ClientInfo* pClientInfo);
 	bool SendMsg(ClientInfo* pClientInfo, const char* message, const int messageLength);
-	void WorkerThread();
-	void AcceptThread();
 	void CloseSocket(ClientInfo* pClientInfo, bool bIsForce = false);
 
 private:
+	void WorkerThread();
+	void AcceptThread();
+	void DispatchThread();
+
+private:
 	std::vector<ClientInfo> mClientInfoArr;
+	ThreadSafeQueue<Message> mMessageQueue;
+	std::thread mAcceptThread;
+	std::vector<std::thread> mIOWorkerThreadArr;
+	std::vector<std::thread> mDispatchThreadArr;
+
+	HANDLE mIOCPHandle = INVALID_HANDLE_VALUE;
 	SOCKET mListenSocket = INVALID_SOCKET;
 	unsigned int mClientCount = 0;
-	std::vector<std::thread> mIOWorkerThreadArr;
-	std::thread mAcceptThread;
-	HANDLE mIOCPHandle = INVALID_HANDLE_VALUE;
 	bool mbIsWorkerRun = true;
 	bool mbIsAcceptRun = true;
-	char mSocketBuffer[1024] = { 0 };
+	bool mbIsDispatchRun = true;
 };
