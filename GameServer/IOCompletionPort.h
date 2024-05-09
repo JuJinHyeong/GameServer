@@ -39,13 +39,15 @@ private:
 	std::vector<std::thread> mIOWorkerThreadArr;
 	// TODO: change to vector
 	std::thread mAcceptThread;
+	bool mbIsWorkerRun = true;
+	bool mbIsAcceptRun = true;
+
 	SOCKET mListenSocket = INVALID_SOCKET;
 	HANDLE mIOCPHandle = nullptr;
 	
+private:
 	ThreadSafeQueue<Message>& mMessageQueue;
 	std::vector<ClientInfo>& mClientInfoArr;
 
-	bool mbIsWorkerRun = true;
-	bool mbIsAcceptRun = true;
 };
 

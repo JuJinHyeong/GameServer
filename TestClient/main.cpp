@@ -107,36 +107,6 @@ int main() {
 		std::cout << "Server: " << recvBuffer << std::endl;
     }
 
-    //std::stringstream ss;
-    //drawGrid();
-    //while (true) {
-    //    if (_kbhit()) { // 키보드 입력이 있을 때만 처리
-    //        char input = _getch(); // 키보드 입력을 받음
-    //        updatePlayerPosition(input); // 플레이어의 위치 업데이트
-
-    //        // Send message to the server
-    //        ss.str("");
-    //        ss << playerX << ',' << playerY;
-    //        std::string message = ss.str();
-    //        if (send(sock, message.c_str(), (int)message.size() , 0) == SOCKET_ERROR) {
-    //            std::cerr << "Send failed!" << std::endl;
-    //            break;
-    //        }
-    //        
-    //        // Receive echo from server
-    //        int recvSize = recv(sock, recvBuffer, BUFFER_SIZE, 0);
-    //        if (recvSize == SOCKET_ERROR || recvSize == 0) {
-    //            std::cerr << "Receive failed!" << std::endl;
-    //            break;
-    //        }
-    //        
-    //        recvBuffer[recvSize] = '\0';
-    //        std::cout << "Server: " << recvBuffer << std::endl;
-
-    //        drawGrid();
-    //    }
-    //}
-
     closesocket(sock);
     WSACleanup();
     return 0;

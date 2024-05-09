@@ -260,7 +260,7 @@ void IOCompletionPort::WorkerThread()
 			BindRecv(pClientInfo);
 		}
 		else if (pOverlappedEx->OperationType == eIOOperation::SEND) {
-			std::cout << "Send Data: " << pOverlappedEx->Buffer << std::endl;
+			std::cout << "Send Data: " << pOverlappedEx->Buffer << '\n';
 		}
 		else {
 			std::cerr << "Unknown Operation Type\n";
