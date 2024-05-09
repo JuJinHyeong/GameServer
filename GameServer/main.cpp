@@ -4,8 +4,7 @@ using namespace std;
 
 int main() {
 	GameServer gameServer;
-	gameServer.InitSocket();
-	gameServer.BindAndListen();
+	gameServer.Initialize();
 	gameServer.StartServer();
 
 	std::cout << "Press any key to exit\n";

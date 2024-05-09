@@ -1,78 +1,32 @@
 #include "GameServer.h"
 #include <iostream>
+#include "ClientInfo.h"
 
-GameServer::GameServer() {
-
+GameServer::GameServer()
+	:
+	mIOCP(mClientInfoArr, mMessageQueue)
+{
 }
 
 GameServer::~GameServer() {
 	WSACleanup();
 }
 
-bool GameServer::InitSocket() {
-	// startup winsocket
-	WSADATA wsaData;
-	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (result != 0) {
-		std::cerr << "WSAStartup failed with error: " << result << std::endl;
-		return false;
-	}
-
-	// Create a socket with wsasocket
-	// not socket() because socket can use both linux and windows.
-	// WSASocket is windows specific
-	mListenSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (mListenSocket == INVALID_SOCKET) {
-		std::cerr << "WSASocket failed with error: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-
-	std::cout << "Socket Initialized Success\n";
-	return true;
-}
-
-bool GameServer::BindAndListen() {
-	SOCKADDR_IN serverAddr;
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(SERVER_PORT);
-	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	int result = bind(mListenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
-	if (result == SOCKET_ERROR) {
-		std::cerr << "bind failed with error: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-
-	// bind	iocompletionport, set listen queue to 5
-	result = listen(mListenSocket, 5);
-	if (result == SOCKET_ERROR) {
-		std::cerr << "listen failed with error: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-
-	std::cout << "Bind and Listen Success\n";
+bool GameServer::Initialize()
+{
+	mIOCP.InitSocket();
+	mIOCP.BindAndListen(SERVER_PORT);
+	mIOCP.Create();
 	return true;
 }
 
 bool GameServer::StartServer() {
 	CreateClient();
-	mIOCPHandle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, MAX_WORKER_THREAD_COUNT);
-	if (mIOCPHandle == NULL) {
-		std::cerr << "CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
-		return false;
-	}
+	mIOCP.Create();
+	mIOCP.CreateAcceptThread();
+	mIOCP.CreateWorkerThread();
 
-	bool result = CreateWorkerThread();
-	if (!result) {
-		return result;
-	}
-
-	result = CreateAcceptThread();
-	if (!result) {
-		return result;
-	}
-
-	result = CreateDispatchThread();
+	bool result = CreateDispatchThread();
 	if (!result) {
 		return result;
 	}
@@ -82,19 +36,7 @@ bool GameServer::StartServer() {
 }
 
 void GameServer::DestroyThread() {
-	mbIsAcceptRun = false;
-	closesocket(mListenSocket);
-	if (mAcceptThread.joinable()) {
-		mAcceptThread.join();
-	}
-
-	mbIsWorkerRun = false;
-	CloseHandle(mIOCPHandle);
-	for (std::thread& th : mIOWorkerThreadArr) {
-		if (th.joinable()) {
-			th.join();
-		}
-	}
+	mIOCP.DestoryThread();
 
 	mbIsDispatchRun = false;
 	for (std::thread& th : mDispatchThreadArr) {
@@ -110,51 +52,12 @@ void GameServer::CreateClient() {
 	}
 }
 
-bool GameServer::CreateWorkerThread() {
-	for (UINT32 i = 0; i < MAX_WORKER_THREAD_COUNT; ++i) {
-		mIOWorkerThreadArr.emplace_back([this]() { WorkerThread(); });
-	}
-	std::cout << "Create Worker Thread Success\n";
-	return true;
-}
-
-bool GameServer::CreateAcceptThread() {
-	mAcceptThread = std::thread([this]() { AcceptThread(); });
-	std::cout << "Create Accept Thread Success\n";
-	return true;
-}
-
 bool GameServer::CreateDispatchThread()
 {
 	for (UINT32 i = 0; i < MAX_DISPATCH_THREAD_COUNT; ++i) {
 		mDispatchThreadArr.emplace_back([this]() { DispatchThread(); });
 	}
 	std::cout << "Create Dispatch Thread Success\n";
-	return true;
-}
-
-ClientInfo* GameServer::GetEmptyClientInfo() {
-	for (ClientInfo& clientInfo : mClientInfoArr) {
-		if (clientInfo.ClientSocket == INVALID_SOCKET) {
-			return &clientInfo;
-		}
-	}
-	return nullptr;
-}
-
-bool GameServer::BindIOCompletionPort(ClientInfo* pClientInfo) {
-	auto hIOCP = CreateIoCompletionPort(
-		(HANDLE)pClientInfo->ClientSocket,
-		mIOCPHandle,
-		(ULONG_PTR)pClientInfo,
-		0
-	);
-
-	if (hIOCP == NULL || mIOCPHandle == NULL) {
-		std::cerr << "CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
-		return false;
-	}
-
 	return true;
 }
 
@@ -208,92 +111,6 @@ bool GameServer::SendMsg(ClientInfo* pClientInfo, const char* message, const int
 	return true;
 }
 
-void GameServer::WorkerThread() {
-	ClientInfo* pClientInfo = nullptr;
-	DWORD IOSize = 0;
-
-	LPOVERLAPPED lpOverlapped = nullptr;
-
-	while (mbIsWorkerRun) {
-		BOOL result = GetQueuedCompletionStatus(
-			mIOCPHandle,
-			&IOSize,
-			(PULONG_PTR)&pClientInfo,
-			&lpOverlapped,
-			INFINITE
-		);
-
-		// if client is closed connection
-		if (result == TRUE && IOSize == 0) {
-			std::cout << "Disconnected: " << (int)pClientInfo->ClientSocket << std::endl;
-			CloseSocket(pClientInfo);
-			continue;
-		}
-
-		// if client sends nothing
-		if (IOSize == NULL) {
-			continue;
-		}
-
-		// if client is terminated
-		if (result == FALSE || (IOSize == 0 && lpOverlapped == NULL)) {
-			std::cout << "Disconnected: " << (int)pClientInfo->ClientSocket << std::endl;
-			CloseSocket(pClientInfo);
-			continue;
-		}
-
-		OverlappedEx* pOverlappedEx = (OverlappedEx*)lpOverlapped;
-		if (pOverlappedEx->OperationType == eIOOperation::RECV) {
-			// convert packet to message
-			pOverlappedEx->Buffer[IOSize] = '\0';
-			Message message = { pOverlappedEx->Buffer, pClientInfo };
-			mMessageQueue.Push(message);
-
-			BindRecv(pClientInfo);
-		}
-		else if (pOverlappedEx->OperationType == eIOOperation::SEND) {
-			std::cout << "Send Data: " << pOverlappedEx->Buffer << std::endl;
-		}
-		else {
-			std::cerr << "Unknown Operation Type\n";
-		}
-	}
-}
-
-void GameServer::AcceptThread() {
-	SOCKADDR_IN clientAddr;
-	int clientAddrSize = sizeof(clientAddr);
-	while (mbIsAcceptRun) {
-		ClientInfo* pClientInfo = GetEmptyClientInfo();
-		if (pClientInfo == nullptr) {
-			std::cerr << "Client is full\n";
-			return;
-		}
-
-		pClientInfo->ClientSocket = accept(mListenSocket, (SOCKADDR*)&clientAddr, &clientAddrSize);
-		if (pClientInfo->ClientSocket == INVALID_SOCKET) {
-			std::cerr << "accept failed with error: " << WSAGetLastError() << std::endl;
-			return;
-		}
-
-		bool result = BindIOCompletionPort(pClientInfo);
-		if (!result) {
-			return;
-		}
-
-		result = BindRecv(pClientInfo);
-		if (!result) {
-			return;
-		}
-
-		char clientIP[INET_ADDRSTRLEN] = { 0 };
-		inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN);
-		std::cout << "Client Connected: " << clientIP << std::endl;
-
-		++mClientCount;
-	}
-}
-
 void GameServer::DispatchThread()
 {
 	while (mbIsDispatchRun) {
@@ -303,26 +120,4 @@ void GameServer::DispatchThread()
 
 		SendMsg(message.pClientInfo, message.Message.c_str(), (int)message.Message.size());
 	}
-}
-
-void GameServer::CloseSocket(ClientInfo* pClientInfo, bool bIsForce) {
-	LINGER linger = { 0, 0 };
-
-	if (bIsForce) {
-		linger.l_onoff = 1;
-	}
-
-	shutdown(pClientInfo->ClientSocket, SD_BOTH);
-
-	setsockopt(
-		pClientInfo->ClientSocket,
-		SOL_SOCKET,
-		SO_LINGER,
-		(char*)&linger,
-		sizeof(linger)
-	);
-
-	closesocket(pClientInfo->ClientSocket);
-
-	pClientInfo->ClientSocket = INVALID_SOCKET;
 }

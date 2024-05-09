@@ -127,15 +127,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClientInfo.cpp" />
     <ClCompile Include="Dispatcher.cpp" />
     <ClCompile Include="GameServer.cpp" />
+    <ClCompile Include="IOCompletionPort.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Message.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Position.cpp" />
+    <ClCompile Include="Room.cpp" />
     <ClCompile Include="ThreadSafeQueue.cpp" />
+    <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClientInfo.h" />
     <ClInclude Include="Dispatcher.h" />
     <ClInclude Include="GameServer.h" />
+    <ClInclude Include="IOCompletionPort.h" />
+    <ClInclude Include="Message.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Position.h" />
+    <ClInclude Include="Room.h" />
     <ClInclude Include="ThreadSafeQueue.h" />
+    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
