@@ -189,6 +189,7 @@ void IOCompletionPort::AcceptThread()
 	while (mbIsAcceptRun) {
 		ClientInfo* pClientInfo = GetEmptyClientInfo();
 		if (pClientInfo == nullptr) {
+			// TODO: return is right?
 			std::cerr << "Client is full\n";
 			return;
 		}

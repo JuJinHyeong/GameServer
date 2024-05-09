@@ -26,13 +26,6 @@ public:
 
 private:
 	void CreateClient();
-	bool CreateDispatchThread();
-
-	bool BindRecv(ClientInfo* pClientInfo);
-	bool SendMsg(ClientInfo* pClientInfo, const char* message, const int messageLength);
-
-private:
-	void DispatchThread();
 
 private:
 	std::vector<ClientInfo> mClientInfoArr;

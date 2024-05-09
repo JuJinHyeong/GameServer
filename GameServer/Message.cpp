@@ -9,6 +9,6 @@ Message::Message(const char* packet, ClientInfo* pClientInfo)
 	:
 	pClientInfo(pClientInfo)
 {
-	memcpy(opcode, packet, 3);
-	memcpy(value, packet + 3, 27);
+	memcpy(opcode, packet, 7);
+	memcpy(value, packet + 7, 31);
 }
