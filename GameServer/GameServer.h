@@ -8,6 +8,7 @@
 
 #include "ThreadSafeQueue.h"
 #include "IOCompletionPort.h"
+#include "Dispatcher.h"
 
 class ClientInfo;
 
@@ -41,4 +42,5 @@ private:
 	bool mbIsDispatchRun = true;
 
 	IOCompletionPort mIOCP;
+	Dispatcher mDispatcher;
 };

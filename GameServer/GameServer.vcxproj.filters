@@ -57,14 +57,14 @@
     <ClCompile Include="ClientInfo.cpp">
       <Filter>소스 파일\Network</Filter>
     </ClCompile>
-    <ClCompile Include="IOCompletionPort.cpp">
-      <Filter>소스 파일\Common</Filter>
-    </ClCompile>
     <ClCompile Include="Message.cpp">
       <Filter>소스 파일\Common</Filter>
     </ClCompile>
     <ClCompile Include="ThreadSafeQueue.cpp">
       <Filter>소스 파일\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="IOCompletionPort.cpp">
+      <Filter>소스 파일\Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

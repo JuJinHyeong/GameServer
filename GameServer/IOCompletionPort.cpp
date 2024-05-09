@@ -254,7 +254,7 @@ void IOCompletionPort::WorkerThread()
 		if (pOverlappedEx->OperationType == eIOOperation::RECV) {
 			 //convert packet to message
 			pOverlappedEx->Buffer[IOSize] = '\0';
-			Message message = { pOverlappedEx->Buffer, pClientInfo };
+			Message message(pOverlappedEx->Buffer, pClientInfo);
 			mMessageQueue.Push(message);
 
 			BindRecv(pClientInfo);
