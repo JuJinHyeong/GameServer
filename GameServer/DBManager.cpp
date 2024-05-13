@@ -71,10 +71,11 @@ bool DBManager::FindUsers(const std::string& user_id, std::vector<User>& users)
 	users.clear();
 	sqlite3_stmt* stmt;
 	std::string sql = "SELECT id, user_id, pw FROM users WHERE user_id=" + user_id;
+	std::cout << sql << std::endl;
 	const char* tail = nullptr;
 	int result = sqlite3_prepare_v3(mDB, sql.c_str(), -1, 0, &stmt, &tail);
 	if (result != SQLITE_OK) {
-		std::cerr << "SQL 준비 오류: " << sqlite3_errmsg(mDB);
+		std::cerr << "SQL 준비 오류: " << sqlite3_errmsg(mDB) << '\n';
 		sqlite3_close(mDB);
 		return false;
 	}
@@ -88,7 +89,7 @@ bool DBManager::FindUsers(const std::string& user_id, std::vector<User>& users)
 	}
 
 	if (result != SQLITE_DONE) {
-		std::cerr << "SQL 실행 오류: " << sqlite3_errmsg(mDB);
+		std::cerr << "SQL 실행 오류: " << sqlite3_errmsg(mDB) << '\n';
 		return false;
 	}
 	return true;
@@ -101,7 +102,7 @@ bool DBManager::FindUsers(const std::string& user_id, User* users, const unsigne
 	const char* tail = nullptr;
 	int result = sqlite3_prepare_v3(mDB, sql.c_str(), -1, 0, &stmt, &tail);
 	if (result != SQLITE_OK) {
-		std::cerr << "SQL 준비 오류: " << sqlite3_errmsg(mDB);
+		std::cerr << "SQL 준비 오류: " << sqlite3_errmsg(mDB) << '\n';
 		sqlite3_close(mDB);
 		return false;
 	}
@@ -116,7 +117,7 @@ bool DBManager::FindUsers(const std::string& user_id, User* users, const unsigne
 	}
 
 	if (result != SQLITE_DONE) {
-		std::cerr << "SQL 실행 오류: " << sqlite3_errmsg(mDB);
+		std::cerr << "SQL 실행 오류: " << sqlite3_errmsg(mDB) << '\n';
 		return false;
 	}
 	return true;
