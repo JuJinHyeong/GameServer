@@ -19,10 +19,9 @@ struct OverlappedEx {
 class ClientInfo
 {
 public:
-	void CloseSocket(bool bIsForce = false);
-public:
 	SOCKET ClientSocket = INVALID_SOCKET;
 	OverlappedEx RecvOverlapped = { 0 };
 	OverlappedEx SendOverlapped = { 0 };
+	char IP[22] = { 0 };
 };
 

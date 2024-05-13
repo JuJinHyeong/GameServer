@@ -7,9 +7,9 @@ class Message
 {
 public:
 	Message();
-	Message(const char* packet, ClientInfo* pClientInfo);
+	Message(ClientInfo* pClientInfo, const char* packet, int packetSize);
 public:
-	char opcode[8] = { 0 };
-	char value[32] = { 0 };
+	std::string opcode;
+	std::string data;
 	class ClientInfo* pClientInfo = nullptr;
 };

@@ -19,17 +19,11 @@
     <Filter Include="소스 파일\Game">
       <UniqueIdentifier>{66dc87dc-6fc8-41c4-b898-2fae6193179f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\Network">
-      <UniqueIdentifier>{0ebd18b1-0788-4e93-9504-25202f339276}</UniqueIdentifier>
+    <Filter Include="헤더 파일\Base">
+      <UniqueIdentifier>{0e45206d-5ea7-4dac-88df-d76151541eae}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Network">
-      <UniqueIdentifier>{e97e16ba-6b42-421c-b205-59a12ce18159}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="헤더 파일\Common">
-      <UniqueIdentifier>{a6a4aa84-66da-4d25-87ec-b533be9ab539}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="소스 파일\Common">
-      <UniqueIdentifier>{dbdecf21-5c5a-40b0-b70f-3fff96a6c249}</UniqueIdentifier>
+    <Filter Include="소스 파일\Base">
+      <UniqueIdentifier>{3c0f7181-e4a1-46d4-b326-dd85250f7c76}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -42,29 +36,32 @@
     <ClCompile Include="Room.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
-    <ClCompile Include="Dispatcher.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
     <ClCompile Include="Transform.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
     <ClCompile Include="Position.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
-    <ClCompile Include="GameServer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="ClientInfo.cpp">
-      <Filter>소스 파일\Network</Filter>
+      <Filter>소스 파일\Base</Filter>
     </ClCompile>
     <ClCompile Include="Message.cpp">
-      <Filter>소스 파일\Common</Filter>
+      <Filter>소스 파일\Base</Filter>
     </ClCompile>
     <ClCompile Include="ThreadSafeQueue.cpp">
-      <Filter>소스 파일\Common</Filter>
+      <Filter>소스 파일\Base</Filter>
     </ClCompile>
-    <ClCompile Include="IOCompletionPort.cpp">
-      <Filter>소스 파일\Network</Filter>
+    <ClCompile Include="ServerBase.cpp">
+      <Filter>소스 파일\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="EchoServer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ShootingGameServer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DBManager.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -74,29 +71,32 @@
     <ClInclude Include="Room.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Dispatcher.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
     <ClInclude Include="Transform.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
     <ClInclude Include="Position.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
-    <ClInclude Include="GameServer.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="ServerBase.h">
+      <Filter>헤더 파일\Base</Filter>
     </ClInclude>
     <ClInclude Include="ClientInfo.h">
-      <Filter>헤더 파일\Network</Filter>
+      <Filter>헤더 파일\Base</Filter>
     </ClInclude>
     <ClInclude Include="Message.h">
-      <Filter>헤더 파일\Common</Filter>
+      <Filter>헤더 파일\Base</Filter>
     </ClInclude>
     <ClInclude Include="ThreadSafeQueue.h">
-      <Filter>헤더 파일\Common</Filter>
+      <Filter>헤더 파일\Base</Filter>
     </ClInclude>
-    <ClInclude Include="IOCompletionPort.h">
-      <Filter>헤더 파일\Network</Filter>
+    <ClInclude Include="EchoServer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ShootingGameServer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="DBManager.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

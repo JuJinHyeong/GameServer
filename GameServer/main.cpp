@@ -1,9 +1,9 @@
 #include <iostream>
-#include "GameServer.h"
+#include "ShootingGameServer.h"
 using namespace std;
 
 int main() {
-	GameServer gameServer;
+	ShootingGameServer gameServer;
 	gameServer.Initialize();
 	gameServer.StartServer();
 
